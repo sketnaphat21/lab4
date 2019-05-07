@@ -1,0 +1,66 @@
+import numpy as np
+import time
+import cv2
+import RPi.GPIO as GPIO
+from time import sleep
+#GPIO Mode (BOARD / BCM)
+GPIO.setmode(GPIO.BCM)
+
+#set GPIO Pins
+GPIO_TRIGGER = 24
+GPIO_ECHO = 23
+
+#set GPIO direction (IN / OUT)
+GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
+GPIO.setup(GPIO_ECHO, GPIO.IN)
+GPIO.setwarnings(False)
+GPIO.setup(17,GPIO.OUT)
+GPIO.setup(27,GPIO.OUT)
+GPIO.setup(10,GPIO.OUT)
+GPIO.setup(9,GPIO.OUT)
+pwm1=GPIO.PWM(27,100)
+pwm2=GPIO.PWM(10,100)
+pwm1.start(50)
+pwm2.start(70)
+def forward():
+    print ("Forward")
+    GPIO.output(27,GPIO.HIGH)
+    GPIO.output(17,GPIO.LOW)
+    GPIO.output(10,GPIO.HIGH)
+    GPIO.output(9,GPIO.LOW)
+
+def turnleft():
+    print ("Turn left")
+    GPIO.output(27,GPIO.HIGH)
+    GPIO.output(17,GPIO.LOW)
+    GPIO.output(10,GPIO.LOW)
+    GPIO.output(9,GPIO.LOW)
+    sleep(2.42)
+    
+def turnright():
+    print ("Turn right")
+    GPIO.output(10,GPIO.HIGH)
+    GPIO.output(9,GPIO.LOW)
+    GPIO.output(27,GPIO.LOW)
+    GPIO.output(17,GPIO.LOW)
+    sleep(2.42)
+    
+def stop():    
+    GPIO.output(17,GPIO.LOW)
+    GPIO.output(27,GPIO.LOW)
+    GPIO.output(10,GPIO.LOW)
+    GPIO.output(9,GPIO.LOW)
+    print ("Stop")
+    
+try:
+    while True:
+        forward()
+        #turnleft()
+        #turnright()
+        
+        # Reset by pressing CTRL + C
+        
+except KeyboardInterrupt:
+    print(" stopped by User")
+    GPIO.cleanup()
+    

@@ -1,0 +1,99 @@
+from picamera.array import PiRGBArray
+from matplotlib import pyplot as plt
+from picamera import PiCamera
+import numpy as np
+import time
+from time import sleep
+import cv2
+import RPi.GPIO as GPIO
+from functionrc import *
+
+def region_of_interest(img, vertices):
+    #กำหนดเมทริกซ์เปล่าที่ตรงกับความสูงของภาพ / ความกว้าง
+    mask = np.zeros_like(img)
+    #เรียกดูจำนวนช่องสีของภาพ 
+    channel_count = img.shape[2]
+    # สร้างสีที่ตรงกับจำนวนช่องสีเดียวกัน 
+    match_mask_color = (255,) * channel_count
+    # กรอกข้อมูลลงในรูปหลายเหลี่ยม
+    cv2.fillPoly(mask, vertices, match_mask_color)
+    # การคืนค่ารูปภาพเฉพาะที่ตำแหน่ง mask mask ตรงกับ
+    masked_image = cv2.bitwise_and(img, mask)
+    return masked_image
+
+region_of_interest_vertices = [
+    (0, 190),(46, 80), (218, 80), (304, 190)
+]
+
+camera = PiCamera()
+camera.resolution = (304, 208)
+camera.framerate = 32
+rawCapture = PiRGBArray(camera, size=(304, 208))
+
+for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+    
+#	dist = distance()
+#	print (" Distance = %.1f cm" % dist)
+#	if(dist <= 20):
+#            stop()
+	
+	image = frame.array
+	
+	edges = cv2.Canny(image, 50, 200,3)
+	dst = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+	cv2.imshow("dst", edges)
+	roi_image = region_of_interest(dst,np.array([region_of_interest_vertices], np.int32))
+	gray = cv2.cvtColor(roi_image, cv2.COLOR_BGR2GRAY)
+	cv2.imshow("gray", gray)
+
+	x = 152
+	y = 156
+	
+	lines = cv2.HoughLinesP(gray, 1, np.pi/180, 60,minLineLength=30, maxLineGap=100	)
+	if lines is not None:
+            for line in lines:                
+                x1, y1, x2, y2 = line[0]
+                cv2.line(image, (x1, y1), (x2, y2), (0, 255, 0), 3,8)
+                
+                cv2.circle(image,(x1,y1), 3, (255,255,255),8,0)
+                cv2.circle(image,(x2,y2), 3, (255,0,0), 8,0)
+               # print("x1 :",x1,"x2 :",x2,"y1 : ",y1 , "y2 : ",y2)
+                                                
+            xl=0; xr=0
+            
+            if x1 < 151 :
+                mleft = (y2 - y1)/(x2 - x1) #fine ml                
+                xl = (y-y1+mleft*x1)/mleft #fine xl                             
+                #print("xl : ",xl , "mleft : " , mleft)
+                
+            if x1 > 153  :
+                mright = (y2 - y1)/(x2 - x1)  #fine mr
+                xr = (y-y1+mright*x1)/mright
+                #print("xr : ", xr,"mright : " , mright )
+                            
+            sl = abs(xl-x)
+            sr = abs(xr-x)
+            print("sl-sr = ",abs(sl-sr))
+            if abs(sl-sr)>120:
+                if sl>sr:
+                    turnleft()
+                                        
+
+                if sl< sr:
+                    turnright()
+                                        
+            else :
+                
+                forward()
+	
+	print("-----------------------")
+	cv2.imshow("Frame", image)
+	key = cv2.waitKey(1) & 0xFF	
+	rawCapture.truncate(0)
+ 
+	if key == ord("q"):
+		break
+cv2.destroyAllWindows()
+stop()
+GPIO.cleanup()
+
